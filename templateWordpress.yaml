@@ -1,1190 +1,343 @@
-{
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Wordpress Stack",
-    "Parameters": {
-        "KeyName": {
-            "Description": "Key Pair name",
-            "Type": "AWS::EC2::KeyPair::KeyName",
-            "Default": "mykey"
-        }
-    },
-    "Mappings": {
-        "RegionMap": {
-            "ap-south-1": {
-                "AMI": "ami-2ed19c41"
-            },
-            "eu-west-3": {
-                "AMI": "ami-c8a017b5"
-            },
-            "eu-west-2": {
-                "AMI": "ami-e3051987"
-            },
-            "eu-west-1": {
-                "AMI": "ami-760aaa0f"
-            },
-            "ap-northeast-2": {
-                "AMI": "ami-fc862292"
-            },
-            "ap-northeast-1": {
-                "AMI": "ami-2803ac4e"
-            },
-            "sa-east-1": {
-                "AMI": "ami-1678037a"
-            },
-            "ca-central-1": {
-                "AMI": "ami-ef3b838b"
-            },
-            "ap-southeast-1": {
-                "AMI": "ami-dd7935be"
-            },
-            "ap-southeast-2": {
-                "AMI": "ami-1a668878"
-            },
-            "eu-central-1": {
-                "AMI": "ami-e28d098d"
-            },
-            "us-east-1": {
-                "AMI": "ami-6057e21a"
-            },
-            "us-east-2": {
-                "AMI": "ami-aa1b34cf"
-            },
-            "us-west-1": {
-                "AMI": "ami-1a033c7a"
-            },
-            "us-west-2": {
-                "AMI": "ami-32d8124a"
-            }
-        }
-    },
-    "Resources": {
-        "VPC": {
-            "Type": "AWS::EC2::VPC",
-            "Properties": {
-                "CidrBlock": "172.31.0.0/16",
-                "EnableDnsHostnames": true
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                }
-            }
-        },
-        "InternetGateway": {
-            "Type": "AWS::EC2::InternetGateway",
-            "Properties": {},
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "1ab00981-05f8-45e6-a647-72a1786ece30"
-                }
-            }
-        },
-        "VPCGatewayAttachment": {
-            "Type": "AWS::EC2::VPCGatewayAttachment",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "InternetGatewayId": {
-                    "Ref": "InternetGateway"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "7a5880be-1cd5-41cd-a571-671b1416793b"
-                }
-            }
-        },
-        "SubnetA": {
-            "Type": "AWS::EC2::Subnet",
-            "Properties": {
-                "AvailabilityZone": {
-                    "Fn::Select": [
-                        0,
-                        {
-                            "Fn::GetAZs": ""
-                        }
-                    ]
-                },
-                "CidrBlock": "172.31.38.0/24",
-                "VpcId": {
-                    "Ref": "VPC"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "5af2c50c-344f-43ae-91b6-c05a33581deb"
-                }
-            }
-        },
-        "SubnetB": {
-            "Type": "AWS::EC2::Subnet",
-            "Properties": {
-                "AvailabilityZone": {
-                    "Fn::Select": [
-                        1,
-                        {
-                            "Fn::GetAZs": ""
-                        }
-                    ]
-                },
-                "CidrBlock": "172.31.37.0/24",
-                "VpcId": {
-                    "Ref": "VPC"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                }
-            }
-        },
-        "RouteTable": {
-            "Type": "AWS::EC2::RouteTable",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "33b58d55-4f16-47b5-90be-54b7a6bd9018"
-                }
-            }
-        },
-        "RouteTableAssociationA": {
-            "Type": "AWS::EC2::SubnetRouteTableAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "SubnetA"
-                },
-                "RouteTableId": {
-                    "Ref": "RouteTable"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "6eea6f41-0dc2-443f-8991-21d1627c9973"
-                }
-            }
-        },
-        "RouteTableAssociationB": {
-            "Type": "AWS::EC2::SubnetRouteTableAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "SubnetB"
-                },
-                "RouteTableId": {
-                    "Ref": "RouteTable"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "e7e1481f-defc-45ad-af11-590da32eeda4"
-                }
-            }
-        },
-        "RoutePublicNATToInternet": {
-            "Type": "AWS::EC2::Route",
-            "Properties": {
-                "RouteTableId": {
-                    "Ref": "RouteTable"
-                },
-                "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId": {
-                    "Ref": "InternetGateway"
-                }
-            },
-            "DependsOn": "VPCGatewayAttachment",
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "43f88d13-f2cd-492a-87ba-e8398403a0e1"
-                }
-            }
-        },
-        "NetworkAcl": {
-            "Type": "AWS::EC2::NetworkAcl",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa"
-                }
-            }
-        },
-        "SubnetNetworkAclAssociationA": {
-            "Type": "AWS::EC2::SubnetNetworkAclAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "SubnetA"
-                },
-                "NetworkAclId": {
-                    "Ref": "NetworkAcl"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "9a244256-e790-4735-bc84-f8dcdb7a4cc6"
-                }
-            }
-        },
-        "SubnetNetworkAclAssociationB": {
-            "Type": "AWS::EC2::SubnetNetworkAclAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "SubnetB"
-                },
-                "NetworkAclId": {
-                    "Ref": "NetworkAcl"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "b8156d1b-7a4a-45e6-a0f1-eeb10dd0b50a"
-                }
-            }
-        },
-        "NetworkAclEntryIngress": {
-            "Type": "AWS::EC2::NetworkAclEntry",
-            "Properties": {
-                "NetworkAclId": {
-                    "Ref": "NetworkAcl"
-                },
-                "RuleNumber": 100,
-                "Protocol": -1,
-                "RuleAction": "allow",
-                "Egress": false,
-                "CidrBlock": "0.0.0.0/0"
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "4edcc56b-0e63-48a1-ac54-7c60710c224a"
-                }
-            }
-        },
-        "NetworkAclEntryEgress": {
-            "Type": "AWS::EC2::NetworkAclEntry",
-            "Properties": {
-                "NetworkAclId": {
-                    "Ref": "NetworkAcl"
-                },
-                "RuleNumber": 100,
-                "Protocol": -1,
-                "RuleAction": "allow",
-                "Egress": true,
-                "CidrBlock": "0.0.0.0/0"
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "c44d1a5d-f96b-48cb-bae5-b76ae3c1a45a"
-                }
-            }
-        },
-        "LoadBalancer": {
-            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-            "Properties": {
-                "Subnets": [
-                    {
-                        "Ref": "SubnetA"
-                    },
-                    {
-                        "Ref": "SubnetB"
-                    }
-                ],
-                "SecurityGroups": [
-                    {
-                        "Ref": "LoadBalancerSecurityGroup"
-                    }
-                ],
-                "Scheme": "internet-facing"
-            },
-            "DependsOn": "VPCGatewayAttachment",
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "3f080722-a398-4e49-8fc6-2b9ee50dbaae"
-                }
-            }
-        },
-        "LoadBalancerListener": {
-            "Type": "AWS::ElasticLoadBalancingV2::Listener",
-            "Properties": {
-                "DefaultActions": [
-                    {
-                        "Type": "forward",
-                        "TargetGroupArn": {
-                            "Ref": "LoadBalancerTargetGroup"
-                        }
-                    }
-                ],
-                "LoadBalancerArn": {
-                    "Ref": "LoadBalancer"
-                },
-                "Port": 80,
-                "Protocol": "HTTP"
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "d173c2bb-dd0a-4f14-832a-b52868e4f20d"
-                }
-            }
-        },
-        "LoadBalancerTargetGroup": {
-            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-            "Properties": {
-                "HealthCheckIntervalSeconds": 5,
-                "HealthCheckPath": "/",
-                "HealthCheckPort": 80,
-                "HealthCheckProtocol": "HTTP",
-                "HealthCheckTimeoutSeconds": 3,
-                "HealthyThresholdCount": 2,
-                "UnhealthyThresholdCount": 2,
-                "Matcher": {
-                    "HttpCode": "200,302"
-                },
-                "Port": 80,
-                "Protocol": "HTTP",
-                "VpcId": {
-                    "Ref": "VPC"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "3a936a7b-4fc4-4e2f-986b-51d74aeeb115"
-                }
-            }
-        },
-        "LoadBalancerSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "awsinaction-elb-sg",
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "SecurityGroupIngress": [
-                    {
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 80,
-                        "IpProtocol": "tcp",
-                        "ToPort": 80
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "3d26de96-3f3e-4c55-abd8-c13d0f4394ec"
-                }
-            }
-        },
-        "WebServerSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "awsinaction-sg",
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "SecurityGroupIngress": [
-                    {
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 22,
-                        "IpProtocol": "tcp",
-                        "ToPort": 22
-                    },
-                    {
-                        "FromPort": 80,
-                        "IpProtocol": "tcp",
-                        "SourceSecurityGroupId": {
-                            "Ref": "LoadBalancerSecurityGroup"
-                        },
-                        "ToPort": 80
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "66733b31-728f-42cb-a15b-813a71018f41"
-                }
-            }
-        },
-        "DatabaseSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "awsinaction-db-sg",
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": 3306,
-                        "ToPort": 3306,
-                        "SourceSecurityGroupId": {
-                            "Ref": "WebServerSecurityGroup"
-                        }
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "8d260d0d-d5de-4384-ae3e-f070e984b69d"
-                }
-            }
-        },
-        "Database": {
-            "Type": "AWS::RDS::DBInstance",
-            "DeletionPolicy": "Delete",
-            "Properties": {
-                "AllocatedStorage": 5,
-                "BackupRetentionPeriod": 0,
-                "DBInstanceClass": "db.t2.micro",
-                "DBName": "wordpress",
-                "Engine": "MySQL",
-                "MasterUsername": "wordpress",
-                "MasterUserPassword": "wordpress",
-                "VPCSecurityGroups": [
-                    {
-                        "Fn::Sub": "${DatabaseSecurityGroup.GroupId}"
-                    }
-                ],
-                "DBSubnetGroupName": {
-                    "Ref": "DBSubnetGroup"
-                }
-            },
-            "DependsOn": "VPCGatewayAttachment",
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "b4f5f324-d0ba-4eaa-a9d7-620334aff6c8"
-                }
-            }
-        },
-        "DBSubnetGroup": {
-            "Type": "AWS::RDS::DBSubnetGroup",
-            "Properties": {
-                "DBSubnetGroupDescription": "DB subnet group",
-                "SubnetIds": [
-                    {
-                        "Ref": "SubnetA"
-                    },
-                    {
-                        "Ref": "SubnetB"
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "1d90f44e-3d8c-4e85-aced-0a072e606537"
-                }
-            }
-        },
-        "EFSFileSystem": {
-            "Type": "AWS::EFS::FileSystem",
-            "Properties": {
-                "FileSystemTags": [
-                    {
-                        "Key": "Name",
-                        "Value": "wordpress-efs"
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "ff3fff61-24be-45e0-a246-cb76215b2a12"
-                }
-            }
-        },
-        "EFSMountTargetA": {
-            "Type": "AWS::EFS::MountTarget",
-            "Properties": {
-                "FileSystemId": {
-                    "Ref": "EFSFileSystem"
-                },
-                "SubnetId": {
-                    "Ref": "SubnetA"
-                },
-                "SecurityGroups": [
-                    {
-                        "Ref": "EFSSecurityGroup"
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "93434d68-693c-493c-b39d-a199ed83030a"
-                }
-            }
-        },
-        "EFSMountTargetB": {
-            "Type": "AWS::EFS::MountTarget",
-            "Properties": {
-                "FileSystemId": {
-                    "Ref": "EFSFileSystem"
-                },
-                "SubnetId": {
-                    "Ref": "SubnetB"
-                },
-                "SecurityGroups": [
-                    {
-                        "Ref": "EFSSecurityGroup"
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "2eae6314-f2e4-40e0-9738-c0cac02eaa1d"
-                }
-            }
-        },
-        "EFSSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "Allowing access to EFS",
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": 2049,
-                        "ToPort": 2049,
-                        "SourceSecurityGroupId": {
-                            "Ref": "WebServerSecurityGroup"
-                        }
-                    }
-                ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "e941e63a-234f-4a71-b615-8de3d1f0f526"
-                }
-            }
-        },
-        "LaunchConfiguration": {
-            "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Metadata": {
-                "AWS::CloudFormation::Init": {
-                    "configSets": {
-                        "default": [
-                            "config"
-                        ]
-                    },
-                    "config": {
-                        "packages": {
-                            "yum": {
-                                "php70": [],
-                                "php70-opcache": [],
-                                "php70-mysqlnd": [],
-                                "mysql56": [],
-                                "httpd24": []
-                            }
-                        },
-                        "files": {
-                            "/etc/httpd/conf.d/wordpress.conf": {
-                                "content": {
-                                    "Fn::Sub": "<Directory \"/var/www/html\">\nOptions Indexes FollowSymLinks\nAllowOverride All\nRequire all granted\n</Directory>\n"
-                                },
-                                "mode": 320,
-                                "owner": "root",
-                                "group": "root"
-                            },
-                            "/root/wordpress.sh": {
-                                "content": {
-                                    "Fn::Sub": "#!/bin/bash -ex\nsed -i 's/;opcache.revalidate_freq=2/opcache.revalidate_freq=300/g' /etc/php-7.0.d/10-opcache.ini\n# ensure than only one machine installs wp\nif mkdir /var/www/lock; then\n  cd /var/www/html\n  wget -q -T 60 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar\n  if ! php wp-cli.phar core is-installed --allow-root; then\n    php wp-cli.phar core download --allow-root --version=4.8\n    php wp-cli.phar core config --dbname='wordpress' --dbuser='wordpress' --dbpass='wordpress' --dbhost='${Database.Endpoint.Address}' --allow-root\n  fi\n  chown -R apache:apache /var/www/html\n  chmod u+wrx /var/www/html/wp-content/*\n  rm wp-cli.phar\nfi\n"
-                                },
-                                "mode": 320,
-                                "owner": "root",
-                                "group": "root"
-                            }, "/root/installansible.sh": {
-                            "content" : {
-                              "Fn::Sub" : {
-                                 "#!/bin/bash
-
-if ! command -v ansible >/dev/null; then
-        echo "Installing Ansible dependencies and Git."
-        if command -v yum >/dev/null; then
-                sudo yum install -y git python python-devel
-        elif command -v apt-get >/dev/null; then
-                sudo apt-get update -qq
-                #sudo apt-get install -y -qq git python-yaml python-paramiko python-jinja2
-                sudo apt-get install -y -qq git python python-dev
-        else
-                echo "neither yum nor apt-get found!"
-                exit 1
-        fi
-        echo "Installing pip via easy_install."
-        wget http://peak.telecommunity.com/dist/ez_setup.py
-        sudo python ez_setup.py && rm -f ez_setup.py
-        sudo easy_install pip
-        # Make sure setuptools are installed crrectly.
-        sudo pip install setuptools --no-use-wheel --upgrade
-        echo "Installing required python modules."
-        sudo pip install paramiko pyyaml jinja2 markupsafe
-        sudo pip install ansible
-fi\n"
-                              }
-                             }, "mode": 320,
-                                "owner": "root",
-                                "group": "root"
-                            }
-                        },
-                        "commands": {
-                            "01_wordpress": {
-                                "command": "/root/wordpress.sh",
-                                "cwd": "/var/www/html",
-                                "command" : "/root/installansible.sh"
-                            }
-                        },
-                        "services": {
-                            "sysvinit": {
-                                "httpd": {
-                                    "enabled": true,
-                                    "ensureRunning": true
-                                }
-                            }
-                        }
-                    }
-                },
-                "AWS::CloudFormation::Designer": {
-                    "id": "0d63f2b8-56d3-4672-b87e-7bf95eca8402"
-                }
-            },
-            "Properties": {
-                "AssociatePublicIpAddress": true,
-                "ImageId": {
-                    "Fn::FindInMap": [
-                        "RegionMap",
-                        {
-                            "Ref": "AWS::Region"
-                        },
-                        "AMI"
-                    ]
-                },
-                "InstanceMonitoring": false,
-                "InstanceType": "t2.micro",
-                "SecurityGroups": [
-                    {
-                        "Ref": "WebServerSecurityGroup"
-                    }
-                ],
-                "KeyName": {
-                    "Ref": "KeyName"
-                },
-                "UserData": {
-                    "Fn::Base64": {
-                        "Fn::Sub": "#!/bin/bash -x\nbash -ex << \"TRY\"\n  while ! nc -z ${EFSFileSystem}.efs.${AWS::Region}.amazonaws.com 2049; do sleep 1; done\n  mkdir /var/www\n  mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 \"${EFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/\" /var/www/\n  /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfiguration --region ${AWS::Region}\nTRY\n/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}\n"
-                    }
-                }
-            }
-        },
-        "AutoScalingGroup": {
-            "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": [
-                "EFSMountTargetA",
-                "EFSMountTargetB"
-            ],
-            "Properties": {
-                "TargetGroupARNs": [
-                    {
-                        "Ref": "LoadBalancerTargetGroup"
-                    }
-                ],
-                "LaunchConfigurationName": {
-                    "Ref": "LaunchConfiguration"
-                },
-                "MinSize": 2,
-                "MaxSize": 4,
-                "DesiredCapacity": 2,
-                "Cooldown": 60,
-                "HealthCheckGracePeriod": 300,
-                "HealthCheckType": "ELB",
-                "VPCZoneIdentifier": [
-                    {
-                        "Ref": "SubnetA"
-                    },
-                    {
-                        "Ref": "SubnetB"
-                    }
-                ],
-                "Tags": [
-                    {
-                        "PropagateAtLaunch": true,
-                        "Value": "wordpress",
-                        "Key": "Name"
-                    }
-                ]
-            },
-            "CreationPolicy": {
-                "ResourceSignal": {
-                    "Timeout": "PT10M"
-                }
-            },
-            "UpdatePolicy": {
-                "AutoScalingRollingUpdate": {
-                    "PauseTime": "PT10M",
-                    "WaitOnResourceSignals": true
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "391e04b0-4b79-434a-9830-4c8ca4e938e0"
-                }
-            }
-        }
-    },
-    "Outputs": {
-        "URL": {
-            "Value": {
-                "Fn::Sub": "http://${LoadBalancer.DNSName}"
-            },
-            "Description": "Wordpress URL"
-        }
-    },
-    "Metadata": {
-        "AWS::CloudFormation::Designer": {
-            "ff3fff61-24be-45e0-a246-cb76215b2a12": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 990,
-                    "y": 90
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "1ab00981-05f8-45e6-a647-72a1786ece30": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 1130,
-                    "y": 100
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "47ef5283-a16b-47c7-86e1-29c96bc8d052": {
-                "size": {
-                    "width": 870,
-                    "height": 780
-                },
-                "position": {
-                    "x": 60,
-                    "y": 90
-                },
-                "z": 1,
-                "embeds": [
-                    "3d26de96-3f3e-4c55-abd8-c13d0f4394ec",
-                    "66733b31-728f-42cb-a15b-813a71018f41",
-                    "e941e63a-234f-4a71-b615-8de3d1f0f526",
-                    "8d260d0d-d5de-4384-ae3e-f070e984b69d",
-                    "3a936a7b-4fc4-4e2f-986b-51d74aeeb115",
-                    "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa",
-                    "33b58d55-4f16-47b5-90be-54b7a6bd9018",
-                    "6af5e7ba-15c1-4892-b385-bf946e71a07a",
-                    "5af2c50c-344f-43ae-91b6-c05a33581deb"
-                ]
-            },
-            "3d26de96-3f3e-4c55-abd8-c13d0f4394ec": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 690,
-                    "y": 450
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "66733b31-728f-42cb-a15b-813a71018f41": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 690,
-                    "y": 570
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "0d63f2b8-56d3-4672-b87e-7bf95eca8402": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 990,
-                    "y": 210
-                },
-                "z": 1,
-                "embeds": [],
-                "isassociatedwith": [
-                    "66733b31-728f-42cb-a15b-813a71018f41"
-                ]
-            },
-            "e941e63a-234f-4a71-b615-8de3d1f0f526": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 690,
-                    "y": 690
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "8d260d0d-d5de-4384-ae3e-f070e984b69d": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 780,
-                    "y": 150
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "3a936a7b-4fc4-4e2f-986b-51d74aeeb115": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 780,
-                    "y": 270
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa": {
-                "size": {
-                    "width": 330,
-                    "height": 240
-                },
-                "position": {
-                    "x": 90,
-                    "y": 150
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [
-                    "c44d1a5d-f96b-48cb-bae5-b76ae3c1a45a",
-                    "4edcc56b-0e63-48a1-ac54-7c60710c224a"
-                ],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "c44d1a5d-f96b-48cb-bae5-b76ae3c1a45a": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 120,
-                    "y": 210
-                },
-                "z": 3,
-                "parent": "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa",
-                "embeds": [],
-                "iscontainedinside": [
-                    "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa"
-                ]
-            },
-            "4edcc56b-0e63-48a1-ac54-7c60710c224a": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 240,
-                    "y": 210
-                },
-                "z": 3,
-                "parent": "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa",
-                "embeds": [],
-                "iscontainedinside": [
-                    "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa"
-                ]
-            },
-            "33b58d55-4f16-47b5-90be-54b7a6bd9018": {
-                "size": {
-                    "width": 240,
-                    "height": 240
-                },
-                "position": {
-                    "x": 480,
-                    "y": 150
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [
-                    "43f88d13-f2cd-492a-87ba-e8398403a0e1"
-                ],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "6af5e7ba-15c1-4892-b385-bf946e71a07a": {
-                "size": {
-                    "width": 240,
-                    "height": 240
-                },
-                "position": {
-                    "x": 390,
-                    "y": 450
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [
-                    "2eae6314-f2e4-40e0-9738-c0cac02eaa1d"
-                ],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "2eae6314-f2e4-40e0-9738-c0cac02eaa1d": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 420,
-                    "y": 510
-                },
-                "z": 3,
-                "parent": "6af5e7ba-15c1-4892-b385-bf946e71a07a",
-                "embeds": [],
-                "isassociatedwith": [
-                    "ff3fff61-24be-45e0-a246-cb76215b2a12",
-                    "e941e63a-234f-4a71-b615-8de3d1f0f526"
-                ],
-                "iscontainedinside": [
-                    "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                ]
-            },
-            "b8156d1b-7a4a-45e6-a0f1-eeb10dd0b50a": {
-                "source": {
-                    "id": "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa"
-                },
-                "target": {
-                    "id": "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                }
-            },
-            "e7e1481f-defc-45ad-af11-590da32eeda4": {
-                "source": {
-                    "id": "33b58d55-4f16-47b5-90be-54b7a6bd9018"
-                },
-                "target": {
-                    "id": "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                }
-            },
-            "5af2c50c-344f-43ae-91b6-c05a33581deb": {
-                "size": {
-                    "width": 240,
-                    "height": 240
-                },
-                "position": {
-                    "x": 90,
-                    "y": 450
-                },
-                "z": 2,
-                "parent": "47ef5283-a16b-47c7-86e1-29c96bc8d052",
-                "embeds": [
-                    "93434d68-693c-493c-b39d-a199ed83030a"
-                ],
-                "iscontainedinside": [
-                    "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                ]
-            },
-            "93434d68-693c-493c-b39d-a199ed83030a": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 120,
-                    "y": 510
-                },
-                "z": 3,
-                "parent": "5af2c50c-344f-43ae-91b6-c05a33581deb",
-                "embeds": [],
-                "isassociatedwith": [
-                    "ff3fff61-24be-45e0-a246-cb76215b2a12",
-                    "e941e63a-234f-4a71-b615-8de3d1f0f526"
-                ],
-                "iscontainedinside": [
-                    "5af2c50c-344f-43ae-91b6-c05a33581deb"
-                ]
-            },
-            "391e04b0-4b79-434a-9830-4c8ca4e938e0": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 1110,
-                    "y": 210
-                },
-                "z": 1,
-                "embeds": [],
-                "isassociatedwith": [
-                    "0d63f2b8-56d3-4672-b87e-7bf95eca8402",
-                    "3a936a7b-4fc4-4e2f-986b-51d74aeeb115"
-                ],
-                "iscontainedinside": [
-                    "5af2c50c-344f-43ae-91b6-c05a33581deb",
-                    "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                ],
-                "dependson": [
-                    "93434d68-693c-493c-b39d-a199ed83030a",
-                    "2eae6314-f2e4-40e0-9738-c0cac02eaa1d"
-                ]
-            },
-            "1d90f44e-3d8c-4e85-aced-0a072e606537": {
-                "size": {
-                    "width": 240,
-                    "height": 240
-                },
-                "position": {
-                    "x": 60,
-                    "y": 930
-                },
-                "z": 1,
-                "embeds": [
-                    "b4f5f324-d0ba-4eaa-a9d7-620334aff6c8"
-                ],
-                "iscontainedinside": [
-                    "5af2c50c-344f-43ae-91b6-c05a33581deb",
-                    "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                ]
-            },
-            "9a244256-e790-4735-bc84-f8dcdb7a4cc6": {
-                "source": {
-                    "id": "1d6e18b2-fdfc-4b59-bdff-4dd49b38a0aa"
-                },
-                "target": {
-                    "id": "5af2c50c-344f-43ae-91b6-c05a33581deb"
-                }
-            },
-            "6eea6f41-0dc2-443f-8991-21d1627c9973": {
-                "source": {
-                    "id": "33b58d55-4f16-47b5-90be-54b7a6bd9018"
-                },
-                "target": {
-                    "id": "5af2c50c-344f-43ae-91b6-c05a33581deb"
-                }
-            },
-            "7a5880be-1cd5-41cd-a571-671b1416793b": {
-                "source": {
-                    "id": "47ef5283-a16b-47c7-86e1-29c96bc8d052"
-                },
-                "target": {
-                    "id": "1ab00981-05f8-45e6-a647-72a1786ece30"
-                }
-            },
-            "b4f5f324-d0ba-4eaa-a9d7-620334aff6c8": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 90,
-                    "y": 990
-                },
-                "z": 2,
-                "parent": "1d90f44e-3d8c-4e85-aced-0a072e606537",
-                "embeds": [],
-                "iscontainedinside": [
-                    "1d90f44e-3d8c-4e85-aced-0a072e606537"
-                ],
-                "dependson": [
-                    "7a5880be-1cd5-41cd-a571-671b1416793b"
-                ]
-            },
-            "3f080722-a398-4e49-8fc6-2b9ee50dbaae": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 990,
-                    "y": 330
-                },
-                "z": 1,
-                "embeds": [],
-                "isassociatedwith": [
-                    "3d26de96-3f3e-4c55-abd8-c13d0f4394ec"
-                ],
-                "iscontainedinside": [
-                    "5af2c50c-344f-43ae-91b6-c05a33581deb",
-                    "6af5e7ba-15c1-4892-b385-bf946e71a07a"
-                ],
-                "dependson": [
-                    "7a5880be-1cd5-41cd-a571-671b1416793b"
-                ]
-            },
-            "d173c2bb-dd0a-4f14-832a-b52868e4f20d": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 1110,
-                    "y": 330
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "43f88d13-f2cd-492a-87ba-e8398403a0e1": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 510,
-                    "y": 210
-                },
-                "z": 3,
-                "parent": "33b58d55-4f16-47b5-90be-54b7a6bd9018",
-                "embeds": [],
-                "isassociatedwith": [
-                    "1ab00981-05f8-45e6-a647-72a1786ece30"
-                ],
-                "iscontainedinside": [
-                    "33b58d55-4f16-47b5-90be-54b7a6bd9018"
-                ],
-                "dependson": [
-                    "7a5880be-1cd5-41cd-a571-671b1416793b"
-                ]
-            }
-        }
-    }
-}
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'A high-availability WordPress website'
+Parameters:
+  KeyName:
+    Description: 'Key Pair name'
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Default: mykey
+Mappings:
+  RegionMap:
+    'ap-south-1':
+      AMI: 'ami-2ed19c41'
+    'eu-west-3':
+      AMI: 'ami-c8a017b5'
+    'eu-west-2':
+      AMI: 'ami-e3051987'
+    'eu-west-1':
+      AMI: 'ami-760aaa0f'
+    'ap-northeast-2':
+      AMI: 'ami-fc862292'
+    'ap-northeast-1':
+      AMI: 'ami-2803ac4e'
+    'sa-east-1':
+      AMI: 'ami-1678037a'
+    'ca-central-1':
+      AMI: 'ami-ef3b838b'
+    'ap-southeast-1':
+      AMI: 'ami-dd7935be'
+    'ap-southeast-2':
+      AMI: 'ami-1a668878'
+    'eu-central-1':
+      AMI: 'ami-e28d098d'
+    'us-east-1':
+      AMI: 'ami-6057e21a'
+    'us-east-2':
+      AMI: 'ami-aa1b34cf'
+    'us-west-1':
+      AMI: 'ami-1a033c7a'
+    'us-west-2':
+      AMI: 'ami-32d8124a'
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: '172.31.0.0/16'
+      EnableDnsHostnames: true
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties: {}
+  VPCGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  SubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: '172.31.38.0/24'
+      VpcId: !Ref VPC
+  SubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: '172.31.37.0/24'
+      VpcId: !Ref VPC
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+  RouteTableAssociationA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetA
+      RouteTableId: !Ref RouteTable
+  RouteTableAssociationB:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetB
+      RouteTableId: !Ref RouteTable
+  RoutePublicNATToInternet:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+    DependsOn: VPCGatewayAttachment
+  NetworkAcl:
+    Type: 'AWS::EC2::NetworkAcl'
+    Properties:
+      VpcId: !Ref VPC
+  SubnetNetworkAclAssociationA:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref SubnetA
+      NetworkAclId: !Ref NetworkAcl
+  SubnetNetworkAclAssociationB:
+    Type: 'AWS::EC2::SubnetNetworkAclAssociation'
+    Properties:
+      SubnetId: !Ref SubnetB
+      NetworkAclId: !Ref NetworkAcl
+  NetworkAclEntryIngress:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      NetworkAclId: !Ref NetworkAcl
+      RuleNumber: 100
+      Protocol: -1
+      RuleAction: allow
+      Egress: false
+      CidrBlock: '0.0.0.0/0'
+  NetworkAclEntryEgress:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      NetworkAclId: !Ref NetworkAcl
+      RuleNumber: 100
+      Protocol: -1
+      RuleAction: allow
+      Egress: true
+      CidrBlock: '0.0.0.0/0'
+  LoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Subnets:
+      - Ref: SubnetA
+      - Ref: SubnetB
+      SecurityGroups:
+      - !Ref LoadBalancerSecurityGroup
+      Scheme: 'internet-facing'
+    DependsOn: VPCGatewayAttachment
+  LoadBalancerListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref LoadBalancerTargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+  LoadBalancerTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: '/'
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 3
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200,302'
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VPC
+  LoadBalancerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'awsinaction-elb-sg'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - CidrIp: '0.0.0.0/0'
+        FromPort: 80
+        IpProtocol: tcp
+        ToPort: 80
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'awsinaction-sg'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - CidrIp: '0.0.0.0/0'
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+      - FromPort: 80
+        IpProtocol: tcp
+        SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        ToPort: 80
+  DatabaseSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'awsinaction-db-sg'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        SourceSecurityGroupId: !Ref WebServerSecurityGroup
+  Database:
+    Type: 'AWS::RDS::DBInstance'
+    DeletionPolicy: Delete # For AWS::RDS::DBInstance resources that don't specify the DBClusterIdentifier property, the default policy is Snapshot which can cause unwanted costs. However, for production setups, we highly recommend to stay with the default to avoid data loss.
+    Properties:
+      AllocatedStorage: 5
+      BackupRetentionPeriod: 0
+      DBInstanceClass: 'db.t2.micro'
+      DBName: wordpress
+      Engine: MySQL
+      MasterUsername: wordpress
+      MasterUserPassword: wordpress
+      VPCSecurityGroups:
+      - !Sub ${DatabaseSecurityGroup.GroupId}
+      DBSubnetGroupName: !Ref DBSubnetGroup
+    DependsOn: VPCGatewayAttachment
+  DBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: DB subnet group
+      SubnetIds:
+      - Ref: SubnetA
+      - Ref: SubnetB
+  EFSFileSystem:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      FileSystemTags:
+      - Key: Name
+        Value: 'wordpress-efs'
+  EFSMountTargetA:
+    Type: 'AWS::EFS::MountTarget'
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Ref SubnetA
+      SecurityGroups:
+      - !Ref EFSSecurityGroup
+  EFSMountTargetB:
+    Type: 'AWS::EFS::MountTarget'
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Ref SubnetB
+      SecurityGroups:
+      - !Ref EFSSecurityGroup
+  EFSSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allowing access to EFS'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 2049
+        ToPort: 2049
+        SourceSecurityGroupId: !Ref WebServerSecurityGroup
+  LaunchConfiguration:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          default: [config]
+        config:
+          packages:
+            yum:
+              php70: []
+              php70-opcache: []
+              php70-mysqlnd: []
+              mysql56: []
+              httpd24: []
+          files:
+            '/etc/httpd/conf.d/wordpress.conf':
+              content: !Sub |
+                <Directory "/var/www/html">
+                Options Indexes FollowSymLinks
+                AllowOverride All
+                Require all granted
+                </Directory>
+              mode: 000500
+              owner: root
+              group: root
+            '/root/wordpress.sh':
+              content: !Sub |
+                #!/bin/bash -ex
+                sed -i 's/;opcache.revalidate_freq=2/opcache.revalidate_freq=300/g' /etc/php-7.0.d/10-opcache.ini
+                # ensure than only one machine installs wp
+                if mkdir /var/www/lock; then
+                  cd /var/www/html
+                  wget -q -T 60 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+                  if ! php wp-cli.phar core is-installed --allow-root; then
+                    php wp-cli.phar core download --allow-root --version=4.8
+                    php wp-cli.phar core config --dbname='wordpress' --dbuser='wordpress' --dbpass='wordpress' --dbhost='${Database.Endpoint.Address}' --allow-root
+                  fi
+                  chown -R apache:apache /var/www/html
+                  chmod u+wrx /var/www/html/wp-content/*
+                  rm wp-cli.phar
+                fi
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            01_wordpress:
+              command: '/root/wordpress.sh'
+              cwd: '/var/www/html'
+          services:
+            sysvinit:
+              httpd:
+                enabled: true
+                ensureRunning: true
+    Properties:
+      AssociatePublicIpAddress: true
+      ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+      InstanceMonitoring: false
+      InstanceType: 't2.micro'
+      SecurityGroups:
+      - !Ref WebServerSecurityGroup
+      KeyName: !Ref KeyName
+      UserData:
+        'Fn::Base64': !Sub |
+          #!/bin/bash -x
+          bash -ex << "TRY"
+            while ! nc -z ${EFSFileSystem}.efs.${AWS::Region}.amazonaws.com 2049; do sleep 1; done
+            mkdir /var/www
+            mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 "${EFSFileSystem}.efs.${AWS::Region}.amazonaws.com:/" /var/www/
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfiguration --region ${AWS::Region}
+          TRY
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    DependsOn:
+    - EFSMountTargetA
+    - EFSMountTargetB
+    Properties:
+      TargetGroupARNs:
+      - !Ref LoadBalancerTargetGroup
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 2
+      MaxSize: 4
+      DesiredCapacity: 2
+      Cooldown: 60
+      HealthCheckGracePeriod: 300
+      HealthCheckType: ELB
+      VPCZoneIdentifier:
+      - !Ref SubnetA
+      - !Ref SubnetB
+      Tags:
+      - PropagateAtLaunch: true
+        Value: wordpress
+        Key: Name
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        PauseTime: PT10M
+        WaitOnResourceSignals: true
+Outputs:
+  URL:
+    Value: !Sub 'http://${LoadBalancer.DNSName}'
+    Description: 'Wordpress URL'
